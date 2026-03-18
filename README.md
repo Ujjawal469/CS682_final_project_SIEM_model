@@ -243,29 +243,4 @@ Jan 12 10:23:05 server sshd[1236]: Invalid user admin from 45.33.32.156 port 22 
 ```
 
 ---
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m 'Add some feature'`
-4. Push to the branch: `git push origin feature/your-feature`
-5. Open a Pull Request
-
----
-
-## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
----
-
-<div align="center">
-
-**CS628 Final Project** — Built with ❤️ using the ELK Stack
-
-*"Security is not a product, but a process."* — Bruce Schneier
-
 </div>
