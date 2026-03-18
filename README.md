@@ -32,7 +32,7 @@
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 Auth Logs ──► Filebeat ──► Logstash ──► Elasticsearch ──► Kibana Dashboard
@@ -47,7 +47,7 @@ Auth Logs ──► Filebeat ──► Logstash ──► Elasticsearch ──�
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 CS628_final_project_SIEM_model/
@@ -70,7 +70,7 @@ CS628_final_project_SIEM_model/
 
 ---
 
-## ⚙️ Setup & Installation
+##  Setup & Installation
 
 ### Prerequisites
 
@@ -80,14 +80,14 @@ CS628_final_project_SIEM_model/
 
 ---
 
-### 1️⃣ Clone the Repository
+### 1️ Clone the Repository
 
 ```bash
 git clone https://github.com/<your-username>/CS628_final_project_SIEM_model.git
 cd CS628_final_project_SIEM_model
 ```
 
-### 2️⃣ Start the ELK Stack
+### 2️ Start the ELK Stack
 
 ```bash
 cd elk
@@ -104,7 +104,7 @@ You should see `elasticsearch`, `logstash`, `kibana`, and `filebeat` containers 
 
 ---
 
-### 3️⃣ Access Services
+### 3️ Access Services
 
 | Service           | URL                                          |
 |-------------------|----------------------------------------------|
@@ -113,7 +113,7 @@ You should see `elasticsearch`, `logstash`, `kibana`, and `filebeat` containers 
 
 ---
 
-### 4️⃣ Generate Logs for Testing
+### 4️ Generate Logs for Testing
 
 **Option A — Manual log injection:**
 
@@ -135,7 +135,7 @@ python3 generate_alerts.py
 
 ---
 
-### 5️⃣ Create a Data View in Kibana
+### 5️ Create a Data View in Kibana
 
 1. Navigate to **Kibana → Stack Management → Data Views**
 2. Click **Create data view**
@@ -146,26 +146,26 @@ python3 generate_alerts.py
 
 ---
 
-## 📌 Core Features
+##  Core Features
 
-### 1. ⏱️ Time Selection Panel
+### 1. Time Selection Panel
 Interactive time filter in Kibana allowing custom time window analysis of login attempts — zoom into specific attack windows.
 
-### 2. 📈 Login Attempts Timeline
+### 2. Login Attempts Timeline
 Line chart plotting login attempts over time. Sudden spikes are strong indicators of **brute-force attacks**.
 
-### 3. 🎯 Top Attacking IPs (Top-K Analysis)
+### 3. Top Attacking IPs (Top-K Analysis)
 Bar chart ranking IP addresses by login attempt volume. Instantly surface the most aggressive malicious sources.
 
-### 4. 🌍 Geolocation-Based Attack Map
+### 4. Geolocation-Based Attack Map
 Maps attacking IP addresses via **GeoIP enrichment**. Visualizes global attack origins with clustering support for hotspot detection.
 
-### 5. 🔁 Historical Attack Correlation
+### 5. Historical Attack Correlation
 Cross-references current IPs against historical logs to detect:
 - **Repeat attackers** from the same IP
 - **Coordinated attacks** from the same subnet
 
-### 6. 🤖 AI Insight Feed (Behavioral Analysis)
+### 6. AI Insight Feed (Behavioral Analysis)
 Custom anomaly detection logic that surfaces behavioral insights such as:
 
 ```
@@ -173,12 +173,12 @@ Custom anomaly detection logic that surfaces behavioral insights such as:
 ⚠️  IP 92.118.160.10 deviates from normal login pattern — possible compromise
 ```
 
-### 7. 👤 Multi-IP Username Detection
+### 7. Multi-IP Username Detection
 Detects the same username being used from multiple IPs — a strong signal of:
 - **Credential compromise**
 - **Distributed brute-force campaigns**
 
-### 8. ✅ Success vs. Failure Analysis
+### 8. Success vs. Failure Analysis
 Pie chart breaking down:
 - ✔️ Successful logins
 - ❌ Failed login attempts
@@ -188,7 +188,7 @@ Pie chart breaking down:
 Note: You may need to setup dashboard separately it comes on login it like readymade stylesheet where you have to create to see the features the features mentioned here are just ideas to begin with to learn them deeply and built more better SIEM here is the youtube link to learn that:
 https://www.youtube.com/playlist?list=PLhLSfisesZIvA8ad1J2DSdLWnTPtzWSfI
 
-## 🖥️ Dashboard Preview
+##  Dashboard Preview
 
 > **Kibana Dashboard includes:**
 > - Login Attempts Timeline (Line Chart)
@@ -200,7 +200,7 @@ https://www.youtube.com/playlist?list=PLhLSfisesZIvA8ad1J2DSdLWnTPtzWSfI
 
 ---
 
-## 🧪 Example Log Formats
+## Example Log Formats
 
 The system parses standard Linux `auth.log` SSH entries:
 
@@ -217,7 +217,7 @@ Jan 12 10:23:05 server sshd[1236]: Invalid user admin from 45.33.32.156 port 22 
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Technology        | Version  | Purpose                        |
 |-------------------|----------|--------------------------------|
@@ -230,7 +230,7 @@ Jan 12 10:23:05 server sshd[1236]: Invalid user admin from 45.33.32.156 port 22 
 
 ---
 
-## 🚨 Alert Example Output
+##  Alert Example Output
 
 ```
 [ALERT] 2026-01-12 10:25:00 | BRUTE FORCE DETECTED
