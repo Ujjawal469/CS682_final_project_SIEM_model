@@ -1,0 +1,12 @@
+filebeat.inputs:
+  - type: filestream
+    id: auth-log-input
+    enabled: true
+    paths:
+      - /logs/auth.log
+
+output.logstash:
+  hosts: ["logstash:5044"]
+
+setup.kibana:
+  host: "kibana:5601"
