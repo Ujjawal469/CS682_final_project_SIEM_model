@@ -21,7 +21,6 @@
 
 [![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)](/)
 [![CS628](https://img.shields.io/badge/Course-CS628_Final_Project-blueviolet?style=flat-square)](/)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 
 </div>
 
