@@ -20,7 +20,7 @@
 <br/>
 
 [![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)](/)
-[![CS628](https://img.shields.io/badge/Course-CS628_Final_Project-blueviolet?style=flat-square)](/)
+[![CS682](https://img.shields.io/badge/Course-CS682_Final_Project-blueviolet?style=flat-square)](/)
 
 </div>
 
