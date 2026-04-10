@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini SIEM — Users</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --surface2: #1c2128;
+      --border:   #30363d;
+      --accent:   #58a6ff;
+      --danger:   #f85149;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --nav-h:    60px;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      height: var(--nav-h); background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 1.5rem; gap: 1rem;
+    }
+    .nav-logo { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: .5rem; }
+    .nav-spacer { flex: 1; }
+    .nav-user { font-size: .85rem; color: var(--muted); }
+    .nav-role {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .3rem .75rem; border-radius: 20px; font-size: .8rem; font-weight: 600;
+      border: 1px solid rgba(231,76,60,.3); background: rgba(231,76,60,.08); color: #e74c3c;
+    }
+    .nav-links { display: flex; gap: .5rem; }
+    .nav-link {
+      padding: .35rem .75rem; border-radius: 6px; font-size: .82rem; font-weight: 500;
+      color: var(--muted); text-decoration: none; transition: color .15s, background .15s;
+    }
+    .nav-link:hover { color: var(--text); background: var(--surface2); }
+    .nav-link.active { color: var(--accent); }
+    .nav-link.danger { color: var(--danger); }
+    .nav-link.danger:hover { background: rgba(248,81,73,.1); }
+
+    /* ── LAYOUT ── */
+    .page { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem; }
+    .page-header { margin-bottom: 1.5rem; }
+    .page-header h2 { font-size: 1.3rem; font-weight: 700; }
+    .page-header p  { font-size: .85rem; color: var(--muted); margin-top: .25rem; }
+
+    /* ── USERS TABLE ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; text-align: left; }
+    th { background: var(--surface2); padding: 1rem; color: var(--muted); font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid var(--border); }
+    td { padding: 1rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    .role-badge { display: inline-flex; align-items: center; gap: .4rem; padding: .2rem .6rem; border-radius: 6px; font-size: .75rem; font-weight: 600; text-transform: uppercase; border: 1px solid; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">🛡️ Mini SIEM</div>
+  <div class="nav-links">
+    <a class="nav-link" href="/dashboard">Dashboard</a>
+    <a class="nav-link active" href="/users">Users</a>
+  </div>
+  <div class="nav-spacer"></div>
+  <div class="nav-user">{{ display }}</div>
+  <div class="nav-role">🔑 Admin</div>
+  <a class="nav-link danger" href="/logout">Logout</a>
+</nav>
+
+<div class="page">
+  <div class="page-header">
+    <h2>User Management</h2>
+    <p>View active accounts and their assigned RBAC roles.</p>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>Display Name</th><th>Username</th><th>Role / Permissions</th></tr>
+      </thead>
+      <tbody>
+        {% for u in user_list %}
+        <tr>
+          <td style="font-weight:600">{{ u.display }}</td>
+          <td style="color:var(--muted)">{{ u.username }}</td>
+          <td>
+            <span class="role-badge" style="color:{{ u.color }};border-color:{{ u.color }}40;background:{{ u.color }}15">
+              {{ u.icon }} {{ u.role }}
+            </span>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:.4rem">
+              {% set perms = role_meta[u.role].perms %}
+              {{ '✅ Raw IPs' if perms.raw_ips else '❌ Raw IPs' }} &nbsp;·&nbsp;
+              {{ '✅ Alerts' if perms.alerts else '❌ Alerts' }} &nbsp;·&nbsp;
+              {{ '✅ Users' if perms.manage_users else '❌ Users' }}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>
