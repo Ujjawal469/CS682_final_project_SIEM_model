@@ -15,12 +15,14 @@
 
 <br/>
 
-> Ingest · Parse · Enrich · Detect · Visualize — SSH authentication threats, live.a
+> Ingest · Parse · Enrich · Detect · Visualize — SSH authentication threats, live.
 
 <br/>
 
 [![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)](/)
 [![CS682](https://img.shields.io/badge/Course-CS682_Final_Project-blueviolet?style=flat-square)](/)
+[![Tests](https://img.shields.io/badge/Tests-13%20passed-success?style=flat-square)](/)
+[![Team](https://img.shields.io/badge/Team-One_Day-orange?style=flat-square)](/)
 
 </div>
 
@@ -28,114 +30,137 @@
 
 ## 📖 Overview
 
-**Mini SIEM** is a lightweight Security Information and Event Management system that monitors, analyzes, and visualizes **SSH login activity** in real time. Built on the battle-tested **ELK Stack**, it ingests Linux authentication logs, enriches them with GeoIP data, detects suspicious patterns like brute-force attacks, and surfaces insights through a live **Kibana dashboard** with geospatial visualizations.
+**Mini SIEM** is a lightweight Security Information and Event Management system that monitors, analyzes, and visualizes **SSH login activity** in real time. Built on the battle-tested **ELK Stack**, it ingests Linux authentication logs, enriches them with GeoIP data, applies six detection rules to identify threats, and surfaces insights through a live **Kibana dashboard** with geospatial visualizations.
 
 ---
 
-##  Architecture
+## 🏗️ Architecture
 
 ```
-Auth Logs ──► Filebeat ──► Logstash ──► Elasticsearch ──► Kibana Dashboard
+generate_live_logs.py
+        │
+        ▼
+   logs/auth.log ──► Filebeat ──► Logstash ──► Elasticsearch ──► Kibana Dashboard
+                                                     ▲
+                                          generate_alerts.py
+                                          (polls every 30s → auth-alerts index)
 ```
 
-| Component         | Role                                                              |
-|-------------------|-------------------------------------------------------------------|
-| **Filebeat**      | Reads and ships system logs (`auth.log`) to Logstash             |
-| **Logstash**      | Parses raw logs, extracts structured fields, enriches with GeoIP |
-| **Elasticsearch** | Indexes and stores structured log documents                       |
-| **Kibana**        | Visualizes data via charts, timelines, and attack maps            |
+| Component | Role |
+|---|---|
+| **Filebeat** | Tails `auth.log` and ships lines to Logstash |
+| **Logstash** | Grok-parses raw SSH lines, enriches with GeoIP, scores severity |
+| **Elasticsearch** | Indexes structured documents in `auth-logs-*` and `auth-alerts` |
+| **Kibana** | Visualizes events via charts, timelines, and geospatial maps |
+| **generate_live_logs.py** | Simulates realistic SSH login traffic (fixed + random IPs) |
+| **generate_alerts.py** | Polls ES every 30 s, applies 6 detection rules, writes alerts |
 
 ---
 
-##  Project Structure
+## 📁 Project Structure
 
 ```
-CS628_final_project_SIEM_model/
-│
-├── elk/
-│   ├── docker-compose.yml          # ELK Stack container orchestration
-│   ├── logstash/
-│   │   └── pipeline/
-│   │       └── logstash.conf       # Log parsing & GeoIP enrichment pipeline
-│   └── filebeat/
-│       └── filebeat.yml            # Filebeat config pointing to auth.log
-│
+live_mini-siem/
+├── apply_template.sh          # One-time ES index template registration (run first!)
+├── es_index_template.json     # Elasticsearch field mapping template
+├── generate_live_logs.py      # Simulates realistic SSH auth.log traffic
+├── generate_alerts.py         # Alert detection engine (6 rules, polls ES every 30s)
+├── pytest.ini                 # Pytest configuration
+├── .gitattributes             # Line-ending rules (LF for shell/conf files)
+├── .gitignore                 # Excludes __pycache__, auth.log, .venv, etc.
 ├── logs/
-│   └── auth.log                    # SSH authentication logs (input source)
-│
-├── generate_live_logs.py           # Simulates live SSH log entries
-├── generate_alerts.py              # Real-time alert generator from log patterns
-└── README.md
+│   └── auth.log               # Live log file (written by generator, git-ignored)
+├── elk/
+│   ├── docker-compose.yml     # Orchestrates ES + Kibana + Logstash + Filebeat
+│   ├── filebeat/
+│   │   └── filebeat.yml       # Filebeat: tails auth.log, ships to Logstash:5044
+│   └── logstash/
+│       ├── config/
+│       │   └── logstash.yml   # Logstash HTTP host & monitoring settings
+│       └── pipeline/
+│           └── logstash.conf  # Grok parsing, GeoIP enrichment, severity scoring
+└── tests/
+    └── test_pipeline.py       # Unit tests for all 6 detection rules (13 tests)
 ```
 
 ---
 
-##  Setup & Installation
+## ⚙️ Setup & Installation
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/) & Docker Compose installed
-- Python 3.x (for log simulation scripts)
-- At least **4GB RAM** available for ELK containers
+| Tool | Version |
+|---|---|
+| Docker | ≥ 24.0 |
+| Docker Compose | ≥ 2.20 |
+| Python | ≥ 3.10 |
+| curl | any |
+
+At least **4 GB RAM** must be available for the ELK containers.
 
 ---
 
-### 1️ Clone the Repository
+### Step 0 — Clone the Repository
 
 ```bash
-git clone https://github.com/<your-username>/CS628_final_project_SIEM_model.git
+git clone https://github.com/Ujjawal469/CS628_final_project_SIEM_model.git
 cd CS628_final_project_SIEM_model
 ```
 
-### 2️ Start the ELK Stack
+---
+
+### Step 1 — Start the ELK Stack
 
 ```bash
-cd elk
+cd elk/
 docker compose up -d
 ```
 
-Verify all containers are running:
+Wait ~60 seconds for all four containers to become healthy, then verify:
 
 ```bash
-docker ps
+docker compose ps
 ```
 
-You should see `elasticsearch`, `logstash`, `kibana`, and `filebeat` containers active.
+You should see `elasticsearch`, `logstash`, `kibana`, and `filebeat` all in **running** state.
 
 ---
 
-### 3️ Access Services
+### Step 2 — Apply the Elasticsearch Index Template
 
-| Service           | URL                                          |
-|-------------------|----------------------------------------------|
-| **Elasticsearch** | [http://localhost:9200](http://localhost:9200)|
-| **Kibana**        | [http://localhost:5601](http://localhost:5601)|
+> ⚠️ **Do this before any logs are indexed.** This registers the `auth-logs-template`
+> mapping so `location` is stored as `geo_point` and `source_ip` as `ip` from the very first event.
+
+```bash
+# From the project root (not elk/)
+chmod +x apply_template.sh
+./apply_template.sh
+```
+
+The script waits for Elasticsearch to be ready, applies the template, and confirms success.
 
 ---
 
-### 4️ Generate Logs for Testing
+### Step 3 — Start Log Generation + Alert Engine
 
-**Option A — Manual log injection:**
+Open **two terminals** in the project root:
 
-```bash
-echo '2026 Jan 12 10:21:01 server sshd[1234]: Failed password for root from 185.220.101.50 port 22 ssh2' >> logs/auth.log
-```
-
-**Option B — Automated live log simulation:**
-
+**Terminal A — simulate live SSH logs:**
 ```bash
 python3 generate_live_logs.py
 ```
 
-**Option C — Real-time alert monitoring:**
-
+**Terminal B — run the alert detection engine:**
 ```bash
+pip install requests        # one-time only
 python3 generate_alerts.py
 ```
 
+Open Kibana at **http://localhost:5601** and navigate to *Discover* to see live events and alerts.
+
 ---
 
-### 5️ Create a Data View in Kibana
+### Step 4 — Create a Data View in Kibana
 
 1. Navigate to **Kibana → Stack Management → Data Views**
 2. Click **Create data view**
@@ -144,106 +169,138 @@ python3 generate_alerts.py
    - **Time field:** `@timestamp`
 4. Save and head to **Discover** or **Dashboard**
 
+Repeat with index pattern `auth-alerts` to explore triggered alerts.
+
 ---
 
-##  Core Features
+### Step 5 — Access Services
 
-### 1. Time Selection Panel
-Interactive time filter in Kibana allowing custom time window analysis of login attempts — zoom into specific attack windows.
+| Service | URL |
+|---|---|
+| **Elasticsearch** | [http://localhost:9200](http://localhost:9200) |
+| **Kibana** | [http://localhost:5601](http://localhost:5601) |
 
-### 2. Login Attempts Timeline
-Line chart plotting login attempts over time. Sudden spikes are strong indicators of **brute-force attacks**.
+---
 
-### 3. Top Attacking IPs (Top-K Analysis)
-Bar chart ranking IP addresses by login attempt volume. Instantly surface the most aggressive malicious sources.
+## 🔍 Detection Rules
 
-### 4. Geolocation-Based Attack Map
-Maps attacking IP addresses via **GeoIP enrichment**. Visualizes global attack origins with clustering support for hotspot detection.
+All six rules run inside `generate_alerts.py`, polling the last **5 minutes** of `auth-logs-*` every **30 seconds**. Triggered alerts are written to the `auth-alerts` index.
 
-### 5. Historical Attack Correlation
-Cross-references current IPs against historical logs to detect:
-- **Repeat attackers** from the same IP
-- **Coordinated attacks** from the same subnet
+| # | Rule | Trigger | Severity |
+|---|---|---|---|
+| 1 | **Brute Force** | ≥ 5 failures from one IP in 5 min | 🔴 HIGH |
+| 2 | **Success After Failures** | ≥ 3 failures then a success from same IP | 🚨 CRITICAL |
+| 3 | **Password Spray** | 1 IP targets ≥ 3 distinct usernames | 🔴 HIGH |
+| 4 | **Multi-IP Username** | 1 username seen from ≥ 3 IPs | 🟠 MEDIUM |
+| 5 | **Privileged User Attack** | `root`/`admin`/`administrator` targeted ≥ 3 times | 🔴 HIGH |
+| 6 | **Repeat Attacker** | Previously flagged IP still active in new window | 🚨 CRITICAL |
 
-### 6. AI Insight Feed (Behavioral Analysis)
-Custom anomaly detection logic that surfaces behavioral insights such as:
+Alerts are visible in Kibana under **Discover → auth-alerts**.
+
+---
+
+## 📊 Kibana Dashboard Features
+
+Build your dashboard in **Kibana → Dashboard → Create** using these visualizations:
+
+| Visualization | Type | What it shows |
+|---|---|---|
+| Login Attempts Timeline | Line chart | Volume over time; spikes = brute force |
+| Top Attacking IPs | Bar chart | Highest-volume source IPs |
+| Global Attack Map | Coordinate map | GeoIP-enriched attack origins |
+| Success vs. Failure | Pie chart | Login outcome breakdown |
+| Multi-IP Username Table | Data table | Usernames seen from many IPs |
+| Severity Score Distribution | Histogram | Event severity weighted by rule scoring |
+
+---
+
+## 🔔 Alert Output Example
+
+The alert engine prints to stdout and writes to Elasticsearch simultaneously:
 
 ```
-⚠️  IP 185.220.101.50 shows unusual activity (6 failed attempts in 1 minute)
-⚠️  IP 92.118.160.10 deviates from normal login pattern — possible compromise
+[*] Mini SIEM Alert Engine starting...
+[*] Loaded 3 historical bad IPs.
+[*] Polling every 30 seconds. Press Ctrl+C to stop.
+
+[*] Analysing 284 events...
+[ALERT] HIGH     | brute_force                   | IP 185.220.101.12 made 31 failed attempts in 5 min.
+[ALERT] CRITICAL | success_after_failures         | IP 91.134.183.44 had 4 failures then succeeded — possible credential compromise.
+[ALERT] HIGH     | password_spray                 | IP 103.214.132.55 targeted 5 usernames: oracle, postgres, root, test, ubuntu
+[ALERT] CRITICAL | repeat_attacker               | IP 185.220.101.12 was first flagged at 2026-04-10T07:21:00+00:00 and is STILL active (35 events this window) — persistent attacker.
 ```
 
-### 7. Multi-IP Username Detection
-Detects the same username being used from multiple IPs — a strong signal of:
-- **Credential compromise**
-- **Distributed brute-force campaigns**
-
-### 8. Success vs. Failure Analysis
-Pie chart breaking down:
-- ✔️ Successful logins
-- ❌ Failed login attempts
 ---
 
+## 📝 Log Format
 
-Note: You may need to setup dashboard separately it comes on login it like readymade stylesheet where you have to create to see the features the features mentioned here are just ideas to begin with to learn them deeply and built more better SIEM here is the youtube link to learn that:
-https://www.youtube.com/playlist?list=PLhLSfisesZIvA8ad1J2DSdLWnTPtzWSfI
-
-##  Dashboard Preview
-
-> **Kibana Dashboard includes:**
-> - Login Attempts Timeline (Line Chart)
-> - Top Attacking IPs (Bar Chart)
-> - Global Attack Map (Geospatial / Coordinate Map)
-> - Success vs. Failure Ratio (Pie Chart)
-> - AI Insight Feed (Custom Panel)
-> - Multi-IP Username Table
-
----
-
-## Example Log Formats
-
-The system parses standard Linux `auth.log` SSH entries:
+The pipeline parses standard Linux `auth.log` SSH entries. `generate_live_logs.py` produces this exact format:
 
 ```log
 # Failed password attempt
-Jan 12 10:21:01 server sshd[1234]: Failed password for root from 185.220.101.50 port 22 ssh2
-
-# Successful login
-Jan 12 10:22:15 server sshd[1235]: Accepted password for alice from 203.0.113.42 port 22 ssh2
+2026 Apr 10 07:21:01 server sshd[1002]: Failed password for root from 185.220.101.12 port 22 ssh2
 
 # Invalid user attempt
-Jan 12 10:23:05 server sshd[1236]: Invalid user admin from 45.33.32.156 port 22 ssh2
+2026 Apr 10 07:21:03 server sshd[1004]: Failed password for invalid user oracle from 103.214.132.55 port 22 ssh2
+
+# Successful login
+2026 Apr 10 07:21:15 server sshd[1006]: Accepted password for alice from 34.201.12.45 port 22 ssh2
+
+# Session disconnect
+2026 Apr 10 07:21:45 server sshd[1006]: Disconnected from user alice 34.201.12.45 port 22
 ```
 
 ---
 
-##  Tech Stack
+## 🧪 Running Tests
 
-| Technology        | Version  | Purpose                        |
-|-------------------|----------|--------------------------------|
-| Elasticsearch     | 8.x      | Log indexing & search          |
-| Logstash          | 8.x      | Log parsing & GeoIP enrichment |
-| Kibana            | 8.x      | Dashboard & visualization      |
-| Filebeat          | 8.x      | Log shipping agent             |
-| Docker            | Latest   | Container orchestration        |
-| Python            | 3.x      | Log simulation & alerting      |
+Unit tests cover all 6 detection rules (13 test cases, no live ES required):
 
----
-
-##  Alert Example Output
-
+```bash
+# From project root
+python3 -m pytest
 ```
-[ALERT] 2026-01-12 10:25:00 | BRUTE FORCE DETECTED
-  IP         : 185.220.101.50
-  Attempts   : 47 failed in last 60 seconds
-  Usernames  : root, admin, ubuntu, user
-  Severity   : CRITICAL 🔴
 
-[ALERT] 2026-01-12 10:26:10 | MULTI-IP USERNAME DETECTED
-  Username   : admin
-  Source IPs : 185.220.101.50, 92.118.160.10, 45.33.32.156
-  Severity   : HIGH 🟠
+Expected output:
+```
+13 passed in 0.35s
 ```
 
 ---
+
+## 🛑 Stopping the Stack
+
+```bash
+cd elk/
+docker compose down        # Stop containers, keep data volume
+docker compose down -v     # Stop containers AND wipe all data
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Technology | Version | Purpose |
+|---|---|---|
+| Elasticsearch | 8.11.1 | Log indexing & full-text search |
+| Logstash | 8.11.1 | Grok parsing & GeoIP enrichment |
+| Kibana | 8.11.1 | Dashboard & visualization |
+| Filebeat | 8.11.1 | Log shipping agent |
+| Docker | ≥ 24.0 | Container orchestration |
+| Python | ≥ 3.10 | Log simulation & alert engine |
+
+---
+
+## 👥 Team
+
+| Name | Roll No. | Primary Area |
+|---|---|---|
+| Ujjawal Kumar Singh | 22b1065 | Architecture, Docker, Dashboard |
+| Aditya Ajey | 22b0986 | Detection rules, Logstash pipeline |
+| Ajaz Shah | 25m0842 | Testing, documentation, bug fixes |
+
+---
+
+<div align="center">
+<sub>CS682 Final Project · Team: One Day</sub>
 </div>
