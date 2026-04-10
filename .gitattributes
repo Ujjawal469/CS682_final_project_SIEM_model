@@ -1,0 +1,25 @@
+# ── Default: auto-normalize text files ──────────────────────────────────────
+* text=auto
+
+# ── Python, config, docs → auto (CRLF on Windows, LF on Linux/WSL) ─────────
+*.py        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.json      text eol=lf
+*.ini       text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+
+# ── Shell scripts MUST stay LF (bash breaks with CRLF) ──────────────────────
+*.sh        text eol=lf
+
+# ── Logstash pipeline config — keep LF ──────────────────────────────────────
+*.conf      text eol=lf
+
+# ── Binary files — never touch line endings ──────────────────────────────────
+*.png       binary
+*.jpg       binary
+*.gif       binary
+*.ico       binary
+*.gz        binary
+*.zip       binary

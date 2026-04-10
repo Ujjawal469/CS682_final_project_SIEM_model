@@ -1,0 +1,73 @@
+{
+  "index_patterns": ["auth-logs-*"],
+  "priority": 200,
+  "template": {
+    "settings": {
+      "number_of_shards":   1,
+      "number_of_replicas": 0,
+      "refresh_interval":   "5s"
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+
+        "@timestamp":            { "type": "date" },
+
+        "source_ip":             { "type": "ip" },
+        "ip_type":               { "type": "keyword" },
+        "port":                  { "type": "integer" },
+        "subnet_24":             { "type": "keyword" },
+        "subnet_16":             { "type": "keyword" },
+
+        "username":              { "type": "keyword" },
+        "service":               { "type": "keyword" },
+        "pid":                   { "type": "integer" },
+        "ssh_protocol":          { "type": "keyword" },
+        "auth_method":           { "type": "keyword" },
+        "key_type":              { "type": "keyword" },
+        "key_fingerprint":       { "type": "keyword" },
+
+        "event_type":            { "type": "keyword" },
+        "login_status":          { "type": "keyword" },
+        "invalid_user_attempt":  { "type": "boolean" },
+        "privileged_user":       { "type": "boolean" },
+        "pam_failure_count":     { "type": "integer" },
+        "sudo_action":           { "type": "keyword" },
+        "sudo_target_user":      { "type": "keyword" },
+        "cron_command":          { "type": "keyword" },
+
+        "severity_score":        { "type": "integer" },
+        "severity_label":        { "type": "keyword" },
+
+        "hour_of_day":           { "type": "integer" },
+        "day_of_week":           { "type": "keyword" },
+        "time_period":           { "type": "keyword" },
+
+        "country_name":          { "type": "keyword" },
+        "country_code":          { "type": "keyword" },
+        "continent_code":        { "type": "keyword" },
+        "city_name":             { "type": "keyword" },
+        "region_name":           { "type": "keyword" },
+        "asn_number":            { "type": "keyword" },
+        "asn_org":               { "type": "keyword" },
+        "timezone":              { "type": "keyword" },
+
+        "location": {
+          "type": "geo_point"
+        },
+
+        "geoip": {
+          "properties": {
+            "latitude":                        { "type": "half_float" },
+            "longitude":                       { "type": "half_float" },
+            "autonomous_system_number":        { "type": "keyword" },
+            "autonomous_system_organization":  { "type": "keyword" }
+          }
+        },
+
+        "auth_message":          { "type": "text", "fields": { "keyword": { "type": "keyword", "ignore_above": 512 } } },
+        "log_host":              { "type": "keyword" }
+      }
+    }
+  }
+}
