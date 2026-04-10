@@ -21,7 +21,7 @@
 
 [![Status](https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square)](/)
 [![CS682](https://img.shields.io/badge/Course-CS682_Final_Project-blueviolet?style=flat-square)](/)
-[![Tests](https://img.shields.io/badge/Tests-13%20passed-success?style=flat-square)](/)
+[![Tests](https://img.shields.io/badge/Tests-46%20passed-success?style=flat-square)](/)
 [![Team](https://img.shields.io/badge/Team-One_Day-orange?style=flat-square)](/)
 
 </div>
@@ -41,9 +41,15 @@ generate_live_logs.py
         │
         ▼
    logs/auth.log ──► Filebeat ──► Logstash ──► Elasticsearch ──► Kibana Dashboard
-                                                     ▲
-                                          generate_alerts.py
-                                          (polls every 30s → auth-alerts index)
+                                                     ▲                  │
+                                          generate_alerts.py            │
+                                          (6 rules, 30s poll)          │
+                                                     ▲                  │
+                                          anomaly_detector.py           │
+                                          (ML, 60s poll)               │
+                                                                        ▼
+                                                              RBAC Portal :8080
+                                                              (Flask, role-scoped)
 ```
 
 | Component | Role |
@@ -63,8 +69,10 @@ generate_live_logs.py
 live_mini-siem/
 ├── apply_template.sh          # One-time ES index template registration (run first!)
 ├── es_index_template.json     # Elasticsearch field mapping template
+├── requirements.txt           # Python dependencies
 ├── generate_live_logs.py      # Simulates realistic SSH auth.log traffic
 ├── generate_alerts.py         # Alert detection engine (6 rules, polls ES every 30s)
+├── anomaly_detector.py        # [B1] ML anomaly detection (IsolationForest + Z-score)
 ├── pytest.ini                 # Pytest configuration
 ├── .gitattributes             # Line-ending rules (LF for shell/conf files)
 ├── .gitignore                 # Excludes __pycache__, auth.log, .venv, etc.
@@ -79,8 +87,16 @@ live_mini-siem/
 │       │   └── logstash.yml   # Logstash HTTP host & monitoring settings
 │       └── pipeline/
 │           └── logstash.conf  # Grok parsing, GeoIP enrichment, severity scoring
+├── rbac/                      # [B2] Role-Based Access Control Portal
+│   ├── portal.py              # Flask app — scoped dashboards per role
+│   └── templates/
+│       ├── login.html         # Dark-themed login page with demo accounts
+│       ├── dashboard.html     # Role-aware dashboard with Chart.js
+│       └── users.html         # Admin-only user management page
 └── tests/
-    └── test_pipeline.py       # Unit tests for all 6 detection rules (13 tests)
+    ├── test_pipeline.py       # Unit tests for 6 detection rules (13 tests)
+    ├── test_anomaly.py        # Unit tests for ML anomaly engine (12 tests)
+    └── test_rbac.py           # Unit tests for RBAC portal (21 tests)
 ```
 
 ---
@@ -152,11 +168,21 @@ python3 generate_live_logs.py
 
 **Terminal B — run the alert detection engine:**
 ```bash
-pip install requests        # one-time only
+pip install -r requirements.txt    # one-time only
 python3 generate_alerts.py
 ```
 
-Open Kibana at **http://localhost:5601** and navigate to *Discover* to see live events and alerts.
+**Terminal C (optional) — run the ML anomaly detector:**
+```bash
+python3 anomaly_detector.py
+```
+
+**Terminal D (optional) — launch the RBAC portal:**
+```bash
+python3 rbac/portal.py
+```
+
+Open Kibana at **http://localhost:5601** or the RBAC Portal at **http://localhost:8080** to see live events and alerts.
 
 ---
 
@@ -179,6 +205,7 @@ Repeat with index pattern `auth-alerts` to explore triggered alerts.
 |---|---|
 | **Elasticsearch** | [http://localhost:9200](http://localhost:9200) |
 | **Kibana** | [http://localhost:5601](http://localhost:5601) |
+| **RBAC Portal** | [http://localhost:8080](http://localhost:8080) |
 
 ---
 
@@ -194,8 +221,28 @@ All six rules run inside `generate_alerts.py`, polling the last **5 minutes** of
 | 4 | **Multi-IP Username** | 1 username seen from ≥ 3 IPs | 🟠 MEDIUM |
 | 5 | **Privileged User Attack** | `root`/`admin`/`administrator` targeted ≥ 3 times | 🔴 HIGH |
 | 6 | **Repeat Attacker** | Previously flagged IP still active in new window | 🚨 CRITICAL |
+| B1 | **ML Anomaly (IsolationForest)** | IP behavior deviates from normal population | 🚨 CRITICAL / 🔴 HIGH |
+| B1 | **Volume Spike (Z-Score)** | Sudden surge in events per minute | 🚨 CRITICAL / 🔴 HIGH |
 
-Alerts are visible in Kibana under **Discover → auth-alerts**.
+Alerts are visible in Kibana under **Discover → auth-alerts** and in the RBAC Portal.
+
+---
+
+## 🔐 RBAC Portal (Bonus Feature B2)
+
+Mini SIEM includes a custom Flask web portal that queries Elasticsearch directly and applies role-based access control (RBAC) to the dashboard.
+
+| Role | Username / Password | Permissions |
+|---|---|---|
+| **Admin** | `admin` / `admin123` | Full access: raw IPs, alerts, user management |
+| **Analyst** | `analyst` / `analyst123` | Can view raw IPs and alerts, but no user management |
+| **Auditor** | `auditor` / `auditor123` | Aggregated stats only; raw IPs and specific alerts are masked |
+
+**To run the portal:**
+```bash
+python3 rbac/portal.py
+```
+Then open **http://localhost:8080** in your browser.
 
 ---
 
@@ -258,12 +305,13 @@ Unit tests cover all 6 detection rules (13 test cases, no live ES required):
 
 ```bash
 # From project root
+pip install -r requirements.txt    # one-time — installs scikit-learn, flask, etc.
 python3 -m pytest
 ```
 
 Expected output:
 ```
-13 passed in 0.35s
+46 passed in 16.73s
 ```
 
 ---
@@ -288,6 +336,8 @@ docker compose down -v     # Stop containers AND wipe all data
 | Filebeat | 8.11.1 | Log shipping agent |
 | Docker | ≥ 24.0 | Container orchestration |
 | Python | ≥ 3.10 | Log simulation & alert engine |
+| scikit-learn | ≥ 1.4 | IsolationForest anomaly detection |
+| Flask | ≥ 3.0 | RBAC web portal |
 
 ---
 
